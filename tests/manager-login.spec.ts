@@ -28,4 +28,31 @@ test.describe('Guru99 Bank - Manager Login', () => {
     // Successful login redirects to .../V4/manager/Managerhomepage.php
     await expect(page).toHaveURL(/Managerhomepage\.php/);
   });
+
+  test('Manager sees alert with invalid credentials', async ({ page }) => {
+    const loginPage = new ManagerLoginPage(page);
+
+    // Step 1: Navigate to the login page.
+    await loginPage.goto();
+
+    // Step 2: Set up a promise that resolves when the dialog event fires.
+    // We use waitForEvent instead of page.on('dialog') because waitForEvent
+    // works reliably across Chromium and Firefox (including headless mode).
+    const dialogPromise = page.waitForEvent('dialog');
+
+    // Step 3: Submit invalid credentials — this triggers the alert.
+    await loginPage.login('wronguser', 'wrongpassword');
+
+    // Step 4: Wait for the dialog and capture it.
+    const dialog = await dialogPromise;
+
+    // Step 5: Assert the alert message matches exactly.
+    expect(dialog.message()).toBe('User or Password is not valid');
+
+    // Step 6: Dismiss the alert (equivalent to clicking OK).
+    await dialog.dismiss();
+
+    // Step 7: Assert we are still on the login page (no navigation occurred).
+    await expect(page).toHaveURL(/index\.php/);
+  });
 });
