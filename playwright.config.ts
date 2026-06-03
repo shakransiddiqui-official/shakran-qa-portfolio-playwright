@@ -4,11 +4,13 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file before tests run.
 dotenv.config();
 
+const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/:/g, '-').split('.')[0];
+
 /**
  * Playwright configuration for the Guru99 Banking automation portfolio.
  * See https://playwright.dev/docs/test-configuration
  */
-const isCI = !!(globalThis as any).process?.env?.CI;
+const isCI = !!process.env['CI'];
 
 export default defineConfig({
   testDir: './tests',
@@ -23,15 +25,15 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
 
   /* One worker on CI for predictable runs; unlimited locally for speed. */
-  workers: isCI ? 1 : undefined,
+  workers: 1,
 
   /* HTML report opens automatically after a run. */
-  reporter: [['html', { open: 'never' }]],
+  reporter: [['html', { open: 'never', outputFolder: `Results/test-report ${timestamp}` }]],
 
   /* Shared settings applied to every test. */
   use: {
     /* Base URL: tests can use page.goto('/') instead of the full URL. */
-    baseURL: (globalThis as any).process?.env?.GURU99_BASE_URL,
+    baseURL: process.env['GURU99_BASE_URL'],
 
     /* Capture a screenshot on every test step (for portfolio demo storytelling). */
     screenshot: 'on',
