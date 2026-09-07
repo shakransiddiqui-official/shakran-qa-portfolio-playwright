@@ -85,6 +85,7 @@ test.describe('vcboom.com — exploratory QA', () => {
   /* TEST 1 — Console errors on homepage load                              */
   /* -------------------------------------------------------------------- */
   test('TEST 1 — homepage loads without console errors', async ({ page }, testInfo) => {
+    test.setTimeout(90000);
     const project = testInfo.project.name;
 
     // Step 1: Start capturing console errors BEFORE navigating so we don't
@@ -102,7 +103,7 @@ test.describe('vcboom.com — exploratory QA', () => {
     await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
 
     // Step 3: Sanity-check the page actually rendered (title is non-empty).
-    await expect(page).toHaveTitle(/.+/);
+    await expect(page).toHaveTitle(/.+/, { timeout: 15000 });
 
     // Step 4: Capture the homepage as evidence.
     await page.screenshot({ path: shot('homepage-desktop', project), fullPage: true });
@@ -154,21 +155,26 @@ test.describe('vcboom.com — exploratory QA', () => {
     console.log(`[TEST 2][${project}] invalid-email errors:`, JSON.stringify(invalidErrors));
     await page.screenshot({ path: shot('signup-invalid-email', project), fullPage: true });
 
-    // --- Case C: well-formed email + password --------------------------
-    // NOTE: this is a real signup attempt against a live Clerk backend. It may
-    // surface a verification step, a CAPTCHA, or an "email taken" message —
-    // all of which are interesting outcomes we capture rather than assert on.
-    await email.fill('shakrantestqa@protonmail.com');
-    await password.fill('TestQA@2026');
-    await submit.click();
-    await page.waitForTimeout(4000);
-    const validErrors = await readFormErrors(page);
-    const afterUrl = page.url();
-    const afterText = (await page.locator('body').innerText()).slice(0, 600);
-    console.log(`[TEST 2][${project}] valid-submit URL:`, afterUrl);
-    console.log(`[TEST 2][${project}] valid-submit messages:`, JSON.stringify(validErrors));
-    console.log(`[TEST 2][${project}] valid-submit body excerpt:`, afterText.replace(/\s+/g, ' '));
-    await page.screenshot({ path: shot('signup-valid-submit', project), fullPage: true });
+    // --- Case C: well-formed email + password -------------------------- 
+    // NOTE: this is a real signup attempt against a live Clerk backend. 
+    // It only runs when you deliberately turn it on, since it creates a 
+    // real account on vcboom.com's live site.
+    if (process.env.RUN_LIVE_SIGNUP === 'true'){
+      await email.fill('shakrantestqa@protonmail.com');
+      await password.fill('TestQA@2026'); 
+      await submit.click(); 
+      await page.waitForTimeout(4000);
+      const validErrors = await readFormErrors(page); 
+      const afterUrl = page.url();
+      const afterText = (await page.locator('body').innerText()).slice(0, 600); 
+      console.log(`[TEST 2][${project}] valid-submit URL:`, afterUrl); 
+      console.log(`[TEST 2][${project}] valid-submit messages:`, JSON.stringify(validErrors));
+      console.log(`[TEST 2][${project}] valid-submit body excerpt:`, afterText.replace(/\s+/g, ' '));
+      await page.screenshot({ path: shot('signup-valid-submit', project), fullPage: true }); 
+    } 
+    else {
+       console.log(`[TEST 2][${project}] skipped the real signup step (set RUN_LIVE_SIGNUP=true to run it)`); 
+      }
 
     // Step: assert that the empty submit produced SOME validation feedback —
     // a form that silently accepts an empty required email would be a real bug.
